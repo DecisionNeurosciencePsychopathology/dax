@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/ihome/crc/install/python/miniconda3-3.7/bin/python
 # -*- coding: utf-8 -*-
 
 '''
@@ -634,13 +634,6 @@ def download_data_xnat():
                                      assessor_dict['qcstatus']])
             else:
                 row = None
-
-            if OPTIONS.rename:
-                assessor_obj = XNAT.select_assessor(assessor_dict['project_label'], \
-                            assessor_dict['subject_label'], \
-                            assessor_dict['session_label'], \
-                            assessor_dict['assessor_label'])
-                proc_path = XnatUtils.rename_directory_with_assessor_inputs(assessor_obj,proc_path)
             download_assessor(proc_path, assessor_dict, asses_res_list, row,
                               LAST_D)
 
@@ -955,9 +948,6 @@ def download_specific_assessor(xnat):
                 if not OPTIONS.oneDir:
                     assessor_path = os.path.join(
                         DIRECTORY, assessor_dict['label'])
-                    if OPTIONS.rename:
-                        assessor_path = XnatUtils.rename_directory_with_assessor_inputs\
-                                (assessor_obj,assessor_path)
                 out_reslist = get_resources_list(
                     assessor_dict, assessors_resources)
                 for rname in out_reslist:
@@ -998,11 +988,6 @@ the csvfile.')
             print('OPTION ERROR: You need to set the OPTIONS -p with the \
 projects ID from Xnat.')
             return False
-    # Checking for rename option-> only with assessors
-    if OPTIONS.rename and \
-        not (OPTIONS.selectionAssessor or OPTIONS.assessortype):
-        print('OPTIONS ERROR: You used the option --rename but have not filtered \
-               for assessors with --selectionP or --a')
     if OPTIONS.update:
         if not os.path.exists(os.path.abspath(OPTIONS.directory)):
             print('OPTION ERROR: You used the option --continue but the \
@@ -1216,12 +1201,12 @@ def parse_args():
                       help='Host for XNAT. Default: using $XNAT_HOST.')
     argp.add_argument('-u', '--username', dest='username', default=None,
                       help='Username for XNAT. Default: using $XNAT_USER.')
+    argp.add_argument('-x', '--password', dest='password', default=None,
+                      help='Password for XNAT. Default: using $XNAT_PASS.')
     argp.add_argument("-p", "--project", dest="project", default=None,
                       help="Project(s) ID on Xnat")
     argp.add_argument("-d", "--directory", dest="directory", default=None,
                       help="Directory where the data will be download")
-    argp.add_argument("--rename",dest="rename", action="store_true" , \
-                      help="Rename assessor directories with scan ID in directory name")
     argp.add_argument("-D", "--oneDirectory", dest="oneDir",
                       action="store_true",
                       help="Data will be downloaded in the same directory. \
@@ -1337,17 +1322,22 @@ scans.')
             HOST = OPTIONS.host
         else:
             HOST = os.environ['XNAT_HOST']
-        if OPTIONS.username:
+        if OPTIONS.username and (OPTIONS.password != None):
             MSG = "Please provide the password for user <%s> on xnat(%s):"
             PWD = getpass.getpass(prompt=MSG % (OPTIONS.username, HOST))
         else:
-            PWD = None
+            PWD = OPTIONS.password
+        if PWD == None:
+            try:
+                PWD = os.environ['XNAT_PASS']
+            except:
+                pass
 
-        MSG = 'INFO: connection to xnat <%s>:' % (HOST)
-        LOGGER.info(MSG)
         with XnatUtils.get_interface(host=OPTIONS.host,
                                      user=OPTIONS.username,
                                      pwd=PWD) as XNAT:
+            MSG = 'INFO: connection to xnat <%s>:' % (HOST)
+            LOGGER.info(MSG)
             if OPTIONS.selectionScan or OPTIONS.selectionAssessor:
                 CSVWRITER = None
                 if OPTIONS.selectionScan:
