@@ -10,6 +10,8 @@ import fnmatch
 import traceback
 import time
 import logging
+import pathlib
+import json
 
 import xml.etree.cElementTree as ET
 from lxml import etree
@@ -142,7 +144,8 @@ class InterfaceTemp(Interface):
                  timeout_emails=None,
                  xnat_timeout=300,
                  xnat_retries=4,
-                 xnat_wait=600):
+                 xnat_wait=600,
+                 xnat_verify=None):
 
         """Entry point for the InterfaceTemp class.
 
@@ -157,6 +160,7 @@ class InterfaceTemp(Interface):
         self.user = xnat_user
         self.pwd = xnat_pass
         self.smtp_host = smtp_host
+        self.verify = xnat_verify
         if not xnat_host:
             self.host = os.environ['XNAT_HOST']
         # User:
@@ -173,6 +177,50 @@ class InterfaceTemp(Interface):
         self.xnat_wait = xnat_wait
         self.timeout_emails = timeout_emails
 
+        # get the home directory
+        HOME = str(pathlib.Path.home())
+
+        # Verification:
+        if xnat_verify == None:
+            # look for the default verify settings (~/.dax/to_verify.json)
+            if os.path.isfile(HOME + '/.dax/to_verify.json'):
+                # try to find the verify setting for the given host
+                try:
+                    # load the file
+                    with open(HOME + '/.dax/to_verify.json', 'r') as f:
+                        json_dict = json.load(f)
+                        # set this to what was found for the current host
+                        self.verify = json_dict[self.host]
+                # otherwise
+                except:
+                    # set verify to false
+                    self.verify = False
+        # for setting based on Boolean
+        elif type(xnat_verify) == bool:
+            self.verify = xnat_verify
+        # otherwise, set the verify parameter for this host
+        else:
+            # if ~/.dax does not exist
+            if not os.path.isdir(HOME + '/.dax'):
+                # create the directory
+                os.mkdir(HOME + '/.dax')
+            # if the to_verify.json file does not exist
+            if not os.path.isfile(HOME + '/.dax/to_verify.json'):
+                # create the file
+                with open(HOME + '/.dax/to_verify.json', 'w') as f:
+                    initial_json = dict()
+                    json.dump(initial_json, f, indent=4)
+            # load the json as a python object
+            with open(HOME + '/.dax/to_verify.json', 'r') as f:
+                json_data = json.load(f)
+            # add/update the verification item to the json file
+            json_data[self.host] = xnat_verify
+            # save the json as a python object
+            with open(HOME + '/.dax/to_verify.json', 'w') as f:
+                json.dump(json_data, f, indent=4)
+            # set self.verify
+            self.verify = xnat_verify
+
         self.authenticate()
 
     def __enter__(self, xnat_host=None, xnat_user=None, xnat_pass=None):
@@ -187,7 +235,8 @@ class InterfaceTemp(Interface):
         """Connect to XNAT."""
         super(InterfaceTemp, self).__init__(server=self.host,
                                             user=self.user,
-                                            password=self.pwd)
+                                            password=self.pwd
+                                            verify=self.verify)
 
     def disconnect(self):
         super(InterfaceTemp, self).disconnect()
