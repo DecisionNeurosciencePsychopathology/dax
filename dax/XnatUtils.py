@@ -12,11 +12,12 @@ import time
 import logging
 import pathlib
 import json
-
+from urllib.parse import urlparse
 import xml.etree.cElementTree as ET
 from lxml import etree
 from pyxnat import Interface
 from pyxnat.core.errors import DatabaseError
+
 import requests
 
 from . import utilities
@@ -190,7 +191,7 @@ class InterfaceTemp(Interface):
                     with open(HOME + '/.dax/to_verify.json', 'r') as f:
                         json_dict = json.load(f)
                         # set this to what was found for the current host
-                        self.verify = json_dict[self.host]
+                        self.verify = json_dict[urlparse(self.host).hostname]
                 # otherwise
                 except:
                     # set verify to false
@@ -235,7 +236,7 @@ class InterfaceTemp(Interface):
         """Connect to XNAT."""
         super(InterfaceTemp, self).__init__(server=self.host,
                                             user=self.user,
-                                            password=self.pwd
+                                            password=self.pwd,
                                             verify=self.verify)
 
     def disconnect(self):
