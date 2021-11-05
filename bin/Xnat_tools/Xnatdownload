@@ -734,21 +734,17 @@ def download_resource(directory, res_obj, res_label, row, one_dir, label=None,
         LOGGER.info('   >Resource %s: WARNING -- no resource %s '
                     % (res_label, res_label))
     else:
-	# TSB: try to download the resource, skip otherwise
-	try:
-		if not res_obj.files().get():
-		    LOGGER.info('   >Resource %s: ERROR -- No files in the resources.'
-				% (res_label))
-		else:
-		    if one_dir:
-			one_dir_download(directory, res_obj, res_label, label,
-					 row, last_dl_date)
-		    else:
-			default_download(directory, res_obj, res_label,
-					 row, last_dl_date)
-	except:
-		LOGGER.info('   >Resource %s: WARNING -- Unable to download the resource %s '
-                    % (res_label, res_label))
+        # TSB: try to download the resource, skip otherwise
+        try:
+            if not res_obj.files().get():
+                LOGGER.info('   >Resource %s: ERROR -- No files in the resources.' % (res_label))
+            else:
+                if one_dir:
+                    one_dir_download(directory, res_obj, res_label, label, row, last_dl_date)
+                else:
+                    default_download(directory, res_obj, res_label, row, last_dl_date)
+        except:
+                LOGGER.info('   >Resource %s: WARNING -- Unable to download the resource %s ' % (res_label, res_label))
 
 def one_dir_download(directory, res_obj, res_label, label,
                      row, last_dl_date):
